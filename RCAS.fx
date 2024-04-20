@@ -18,56 +18,28 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
 // THE SOFTWARE.
 
-//Implementation and additions by RdenBlaauwen:
-//  The defaults are supposed to approximate AMD FidelityFX RCAS to the best of my abilities.
-//  I added some additional features, but these are only available when
-//  ENABLE_NON_STANDARD_FEATURES is set to 1.
-//   - The ability to use a Sharpness value of > 1.0, for stronger sharpening than normal.
-//   - Ability to lower the RCAS_LIMIT. This decreases artifacts and extreme sharpening, 
-//     but may decrease sharpening strength. Lowering this value is recommended when using very high Sharpness settings.
-//   - Option to use green as luma instead of the dot product of luma weights. 
-//     This improves performance, but may decrease quality.
+//Tweaked by Hybred & originally implementation with additions by RdenBlaauwen
+// Repository: https://github.com/xHybred/Hybred-Shaders
+// Original https://github.com/RdenBlaauwen/RCAS-for-ReShade
 
 #include "ReShadeUI.fxh"
 
-#ifndef ENABLE_NON_STANDARD_FEATURES
-  #define ENABLE_NON_STANDARD_FEATURES 0
+#ifndef Experimental_Features
+  #define ENABLE_NON_STANDARD_FEATURES 1
 #endif
-
-uniform int RCASIntroduction <
-  ui_category = "about";
-	ui_type = "radio";
-  ui_text = 
-    "------------------------------ Preprocessor Values ------------------------------\n"
-    "                RCAS_DENOISE: Noise reduction. Recommended value: 1 if there is\n"
-    "                              noise such at film grain. Otherwise it's best to\n"
-    "                              test whatever gives you best results yourself."
-    "      RCAS_PASSTHROUGH_ALPHA: Lets RCAS output the alpha channel, unchanged.\n"
-    "                              Recommended value: 0. If you're having trouble,\n"
-    "                              try turning this on.\n"
-    "ENABLE_NON_STANDARD_FEATURES: Enables custom features not part of ADM FidelityFX RCAS.\n"
-    "                              Turned off by default, as the default is supposed to\n"
-    "                              approximate real RCAS as much as possible.\n"
-    "                              I recommend you try it out though.\n"
-    "\n"
-    "------------------------------------ Notice ------------------------------------\n"
-    "RCAS was never meant to be used as a stand-alone shader. I decided to do it anyways\n"
-    "because (imho) it has excellent results and performance. However, since this shader\n"
-    "uses RCAS in a way it was never intended to, I should make clear that any shortcomings\n"
-    "this shader may have are not representative of the quality of AMD FidelityFX FSR, or\n"
-    "any other of AMD FidelityFX' shaders, or of the skills of the AMD FidelityFX team.\n";
->;
 
 uniform float Sharpness <
   ui_type = "slider";
+  ui_step = 0.05;
   ui_min = 0.0; ui_step = 0.01;
   #if ENABLE_NON_STANDARD_FEATURES
     ui_max = 1.30; 
   #else
-    ui_max = 1.0;
+    ui_max = 1.3;
   #endif
   ui_label = "Sharpness";
   ui_tooltip = "Sharpening strength.";
+  ui_category = "RCAS";
 > = 1.0;
 
 #if ENABLE_NON_STANDARD_FEATURES == 1
@@ -93,8 +65,8 @@ uniform float Sharpness <
 
 // RCAS also supports a define to enable a more expensive path to avoid some sharpening of noise.
 // Would suggest it is better to apply film grain after RCAS sharpening (and after scaling) instead of using this define,
-#ifndef RCAS_DENOISE
-  #define RCAS_DENOISE 1
+#ifndef Denoise
+  #define Denoise 1
 #endif
 
 // RCAS sharpening supports a CAS-like pass-through alpha via the following
@@ -227,17 +199,17 @@ float3 rcasPS(float4 vpos : SV_Position, float2 texcoord : TexCoord) : SV_Target
   #endif
 }
 
-technique RobustContrastAdaptiveSharpening 
+technique RCAS 
   <
-    ui_label = "AMD FidelityFX Robust Contrast Adaptive Sharpening";
+    ui_label = "RobustCAS";
     ui_tooltip = 
-      "RCAS is a light-weight, adaptive sharpening shader included in AMD FidelityFX FSR 1.\n"
+      "RCAS is a light-weight adaptive sharpening shader included in AMD FidelityFX FSR.\n"
       "It is a derivative of AMD FidelityFX CAS, but it \"uses a more exact mechanism, \n"
       "solving for the maximum local sharpness possible before clipping.\"\n"
       "It also lacks the support for scaling that AMD CAS has.\n"
       "\n"
       "The algorithm applies less sharpening to areas that are already sharp, while more\n"
-      "featureless areas are sharpened more. This prevents artifacts, like ugly contours.\n";
+      "featureless areas are sharpened more. This prevents artifacts like ugly contours.\n";
   >
 {
   pass
